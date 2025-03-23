@@ -115,11 +115,13 @@ void constrained_tree_distance(
 		while(b_adj_len < b.adj.stride && *imat_nid(b.adj, b_adj_len, j-1) != 0) b_adj_len++;
 
 		for(size_t i = a.len; i > 0; i--) {
+			log("Calculate %ld %ld", i, j);
 			size_t a_adj_len = 0;
 			while(a_adj_len < a.adj.stride && *imat_nid(a.adj, a_adj_len, i-1) != 0) a_adj_len++;
 
 			string_edit_distance(imat_nid(a.adj, 0, i-1), a_adj_len, imat_nid(b.adj, 0, j-1), b_adj_len, cost_n, cost_s);
 			uint32_t min_cost = *imat_uint32_t(cost_s, a_adj_len, b_adj_len);
+			log("min_cost = %d", min_cost);
 
 			if(a_adj_len > 0) {
 				uint32_t temp_min = UINT32_MAX;
@@ -130,6 +132,7 @@ void constrained_tree_distance(
 				}
 				min_cost = min(min_cost, *imat_uint32_t(cost_f, i, 0) + temp_min);
 			}
+			log("min_cost = %d", min_cost);
 
 			if(b_adj_len > 0) {
 				uint32_t temp_min = UINT32_MAX;
@@ -140,10 +143,12 @@ void constrained_tree_distance(
 				}
 				min_cost = min(min_cost, *imat_uint32_t(cost_f, 0, j) + temp_min);
 			}
+			log("min_cost = %d %d %d", min_cost, a_adj_len, b_adj_len);
 
 			*imat_uint32_t(cost_f, i, j) = min_cost;
 
 			min_cost = *imat_uint32_t(cost_f, i, j) + *imat_uint32_t(cost, i, j);
+			log("min_cost = %d", min_cost);
 
 			if(a_adj_len > 0) {
 				uint32_t temp_min = UINT32_MAX;
@@ -154,20 +159,24 @@ void constrained_tree_distance(
 				}
 				min_cost = min(min_cost, *imat_uint32_t(cost_n, i, 0) + temp_min);
 			}
+			log("min_cost = %d", min_cost);
 
 			if(b_adj_len > 0) {
 				uint32_t temp_min = UINT32_MAX;
 				for(uint32_t k = 0; k < b_adj_len; k++) {
-					uint32_t cost = *imat_uint32_t(cost_n, i, *imat_nid(b.adj, k, j-1)) - *imat_uint32_t(cost_n, 0, *imat_nid(a.adj, k, j-1));
+					uint32_t cost = *imat_uint32_t(cost_n, i, *imat_nid(b.adj, k, j-1)) - *imat_uint32_t(cost_n, 0, *imat_nid(b.adj, k, j-1));
 					if(temp_min > cost)
 						temp_min = cost;
 				}
 				min_cost = min(min_cost, *imat_uint32_t(cost_n, 0, j) + temp_min);
 			}
+			log("min_cost = %d", min_cost);
 
 			*imat_uint32_t(cost_n, i, j) = min_cost;
 		}
 	}
+	debug2D(cost_n, b.len+1);
+	debug2D(cost_f, b.len+1);
 }
 
 void constrained_tree_alignment (
@@ -311,10 +320,10 @@ void constrained_tree_alignment (
 				to_compute_head++;
 				if(x == min_a) {
 					slot[0] = *imat_nid(a.adj, x, i-1);
-					slot[1] = -1;
+					slot[1] = i;
 				} else {
 					slot[0] = *imat_nid(a.adj, x, i-1);
-					slot[1] = i;
+					slot[1] = -1;
 				}
 			}
 		} else if(b_adj_len > 0 && *imat_uint32_t(cost_n, i, j) == *imat_uint32_t(cost_n, 0, j) + min_cost_b) {

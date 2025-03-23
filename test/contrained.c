@@ -277,5 +277,60 @@ int main(int argc, char **argv) {
 		);
 	}
 
+	{
+		struct Tree a = {
+			.adj = {
+				.data = (nid[]){2, 0},
+				.stride = 1,
+			},
+			.len = 2,
+		};
+
+		struct Tree b = {
+			.adj = {
+				.data = (nid[]){2, 3, 0},
+				.stride = 1,
+			},
+			.len = 3,
+		};
+
+		DECL_MAT_DATA(cost, uint32_t, 3, 4,
+			0, 2, 2,
+			2, 0, 2,
+			2, 2, 2,
+			2, 2, 0,
+		);
+		DECL_MAT(cost_n, uint32_t, 3, 4);
+		DECL_MAT(cost_f, uint32_t, 3, 4);
+		DECL_MAT(cost_s, uint32_t, 3, 2);
+
+		constrained_tree_distance(
+			a,
+			b,
+			cost,
+			cost_n,
+			cost_f,
+			cost_s
+		);
+
+		if(*imat_uint32_t(cost_n, 1, 1) != 2) {
+			log("Test Fail\n");
+			return 1;
+		}
+
+		DECL_MAT(alignment, uint32_t, 2, 2);
+		uint32_t adj_alignment[2] = {0, 0};
+		constrained_tree_alignment(
+			a,
+			b,
+			cost,
+			cost_n,
+			cost_f,
+			cost_s,
+			adj_alignment,
+			alignment
+		);
+	}
+
 	return 0;
 }

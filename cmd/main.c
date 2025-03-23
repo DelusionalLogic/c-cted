@@ -51,6 +51,18 @@ int main(int argc, char **argv) {
 		2, 1, 1, 0, 1,
 		2, 1, 1, 1, 1
 	);
+	for(size_t i = 0; i < 4; i++) {
+		size_t a_tag_end = a_chunks[i];
+		while(a[a_tag_end] != '>') a_tag_end++;
+		size_t a_len = a_tag_end - a_chunks[i];
+		*imat_uint32_t(cost, i+1, 0) = a_len;
+	}
+	for(size_t j = 0; j < 4; j++) {
+		size_t b_tag_end = b_chunks[j];
+		while(b[b_tag_end] != '>') b_tag_end++;
+		size_t b_len = b_tag_end - b_chunks[j];
+		*imat_uint32_t(cost, 0, j+1) = b_len;
+	}
 	for(size_t j = 0; j < 4; j++) {
 		size_t b_tag_end = b_chunks[j];
 		while(b[b_tag_end] != '>') b_tag_end++;
