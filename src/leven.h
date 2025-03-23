@@ -36,22 +36,23 @@ struct Tree {
 	size_t len;
 };
 
+typedef struct {
+	const mat_uint32_t cost;
+	mat_uint32_t cost_n;
+	mat_uint32_t cost_f;
+	mat_uint32_t cost_s;
+} CTedData;
+
 void constrained_tree_distance(
 	struct Tree a,
 	struct Tree b,
-	mat_uint32_t cost,
-	mat_uint32_t cost_n,
-	mat_uint32_t cost_f,
-	mat_uint32_t cost_s
+	CTedData data
 );
 
 void constrained_tree_alignment(
 	const struct Tree a,
 	const struct Tree b,
-	const mat_uint32_t cost,
-	const mat_uint32_t cost_n,
-	const mat_uint32_t cost_f,
-	mat_uint32_t cost_s,
+	CTedData data,
 	uint32_t *adj_alignment,
 	mat_uint32_t alignment
 );

@@ -104,11 +104,6 @@ int main(int argc, char **argv) {
 		}
 	}
 	loge();
-	/* mat_uint32_t cost = { */
-	/* 	.data = malloc(a_tree.len * b_tree.len * sizeof(uint32_t)), */
-	/* 	.stride = a_tree.len, */
-	/* }; */
-	/* assert(cost.data != NULL); */
 
 	mat_uint32_t cost_n = {
 		.data = malloc((a_tree.len+1) * (b_tree.len+1) * sizeof(uint32_t)),
@@ -128,40 +123,20 @@ int main(int argc, char **argv) {
 	};
 	assert(cost_s.data != NULL);
 
-	constrained_tree_distance(a_tree, b_tree, cost, cost_n, cost_f, cost_s);
+	CTedData cted = {cost, cost_n, cost_f, cost_s};
+	constrained_tree_distance(a_tree, b_tree, cted);
 
-	printf("COST_F\n");
-	for(size_t y = 0; y < b_tree.len+1; y++) {
-		for(size_t x = 0; x < cost.stride; x++) {
-			printf("%d ", *imat_uint32_t(cost_f, x, y));
-		}
-		printf("\n");
-	}
-	printf("\n");
-	printf("COST_N\n");
-	for(size_t y = 0; y < b_tree.len+1; y++) {
-		for(size_t x = 0; x < cost.stride; x++) {
-			printf("%d ", *imat_uint32_t(cost_n, x, y));
-		}
-		printf("\n");
-	}
-	printf("\n");
-
-	printf("%d\n", *imat_uint32_t(cost_n, 1, 1));
+	log("Final Cost %d", *imat_uint32_t(cost_n, 1, 1));
 
 	DECL_MAT(alignment, uint32_t, 2, 2);
 	uint32_t adj_alignment[2] = {0, 0};
 	constrained_tree_alignment(
 		a_tree,
 		b_tree,
-		cost,
-		cost_n,
-		cost_f,
-		cost_s,
+		cted,
 		adj_alignment,
 		alignment
 	);
 
-	printf("Hello sailor\n");
 	return 0;
 }

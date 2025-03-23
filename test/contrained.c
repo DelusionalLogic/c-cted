@@ -34,10 +34,12 @@ int main(int argc, char **argv) {
 		constrained_tree_distance(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			}
 		);
 
 		if(*imat_uint32_t(cost_n, 1, 1) != 1) {
@@ -50,10 +52,12 @@ int main(int argc, char **argv) {
 		constrained_tree_alignment(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s,
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			},
 			adj_alignment,
 			alignment
 		);
@@ -87,10 +91,12 @@ int main(int argc, char **argv) {
 		constrained_tree_distance(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			}
 		);
 
 		if(*imat_uint32_t(cost_n, 1, 1) != 2) {
@@ -103,10 +109,12 @@ int main(int argc, char **argv) {
 		constrained_tree_alignment(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s,
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			},
 			adj_alignment,
 			alignment
 		);
@@ -141,10 +149,12 @@ int main(int argc, char **argv) {
 		constrained_tree_distance(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			}
 		);
 
 		if(*imat_uint32_t(cost_n, 1, 1) != 0) {
@@ -157,10 +167,12 @@ int main(int argc, char **argv) {
 		constrained_tree_alignment(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s,
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			},
 			adj_alignment,
 			alignment
 		);
@@ -197,10 +209,12 @@ int main(int argc, char **argv) {
 		constrained_tree_distance(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			}
 		);
 
 		if(*imat_uint32_t(cost_n, 1, 1) != 2) {
@@ -213,10 +227,12 @@ int main(int argc, char **argv) {
 		constrained_tree_alignment(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s,
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			},
 			adj_alignment,
 			alignment
 		);
@@ -252,10 +268,12 @@ int main(int argc, char **argv) {
 		constrained_tree_distance(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			}
 		);
 
 		if(*imat_uint32_t(cost_n, 1, 1) != 4) {
@@ -268,10 +286,12 @@ int main(int argc, char **argv) {
 		constrained_tree_alignment(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s,
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			},
 			adj_alignment,
 			alignment
 		);
@@ -307,10 +327,12 @@ int main(int argc, char **argv) {
 		constrained_tree_distance(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			}
 		);
 
 		if(*imat_uint32_t(cost_n, 1, 1) != 2) {
@@ -323,10 +345,12 @@ int main(int argc, char **argv) {
 		constrained_tree_alignment(
 			a,
 			b,
-			cost,
-			cost_n,
-			cost_f,
-			cost_s,
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			},
 			adj_alignment,
 			alignment
 		);

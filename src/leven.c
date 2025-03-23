@@ -85,11 +85,13 @@ void string_edit_alignment(const nid *a, size_t la, const nid *b, size_t lb, con
 void constrained_tree_distance(
 	const struct Tree a,
 	const struct Tree b,
-	const mat_uint32_t cost, // The cost matrix to map a node from a (x-axis) to a node from b (y-axis)
-	mat_uint32_t cost_n, // The resulting computed cost matrixes node and forest. Size a.len x b.len
-	mat_uint32_t cost_f,
-	mat_uint32_t cost_s // Scratch space to calculate the edit distance between subtrees. Size a.adj.stride x b.adj.stride.
+	CTedData data
 ) {
+	mat_uint32_t cost = data.cost;
+	mat_uint32_t cost_n = data.cost_n;
+	mat_uint32_t cost_f = data.cost_f;
+	mat_uint32_t cost_s = data.cost_s;
+
 	*imat_uint32_t(cost_n, 0, 0) = 0;
 	*imat_uint32_t(cost_f, 0, 0) = 0;
 
@@ -121,7 +123,6 @@ void constrained_tree_distance(
 
 			string_edit_distance(imat_nid(a.adj, 0, i-1), a_adj_len, imat_nid(b.adj, 0, j-1), b_adj_len, cost_n, cost_s);
 			uint32_t min_cost = *imat_uint32_t(cost_s, a_adj_len, b_adj_len);
-			log("min_cost = %d", min_cost);
 
 			if(a_adj_len > 0) {
 				uint32_t temp_min = UINT32_MAX;
@@ -132,7 +133,6 @@ void constrained_tree_distance(
 				}
 				min_cost = min(min_cost, *imat_uint32_t(cost_f, i, 0) + temp_min);
 			}
-			log("min_cost = %d", min_cost);
 
 			if(b_adj_len > 0) {
 				uint32_t temp_min = UINT32_MAX;
@@ -143,12 +143,10 @@ void constrained_tree_distance(
 				}
 				min_cost = min(min_cost, *imat_uint32_t(cost_f, 0, j) + temp_min);
 			}
-			log("min_cost = %d %d %d", min_cost, a_adj_len, b_adj_len);
 
 			*imat_uint32_t(cost_f, i, j) = min_cost;
 
 			min_cost = *imat_uint32_t(cost_f, i, j) + *imat_uint32_t(cost, i, j);
-			log("min_cost = %d", min_cost);
 
 			if(a_adj_len > 0) {
 				uint32_t temp_min = UINT32_MAX;
@@ -159,7 +157,6 @@ void constrained_tree_distance(
 				}
 				min_cost = min(min_cost, *imat_uint32_t(cost_n, i, 0) + temp_min);
 			}
-			log("min_cost = %d", min_cost);
 
 			if(b_adj_len > 0) {
 				uint32_t temp_min = UINT32_MAX;
@@ -170,7 +167,6 @@ void constrained_tree_distance(
 				}
 				min_cost = min(min_cost, *imat_uint32_t(cost_n, 0, j) + temp_min);
 			}
-			log("min_cost = %d", min_cost);
 
 			*imat_uint32_t(cost_n, i, j) = min_cost;
 		}
@@ -182,15 +178,16 @@ void constrained_tree_distance(
 void constrained_tree_alignment (
 	const struct Tree a,
 	const struct Tree b,
-	const mat_uint32_t cost,
-	const mat_uint32_t cost_n, // The resulting computed cost matrixes node and forest. Size a.len x b.len
-	const mat_uint32_t cost_f,
-	// Scratch space
-	mat_uint32_t cost_s,
+	CTedData data,
 	uint32_t *adj_alignment,
 
 	mat_uint32_t alignment
 ) {
+
+	mat_uint32_t cost = data.cost;
+	mat_uint32_t cost_n = data.cost_n;
+	mat_uint32_t cost_f = data.cost_f;
+	mat_uint32_t cost_s = data.cost_s;
 
 	mat_uint32_t to_compute = {
 		.data = malloc((2 * (a.len * b.len)) * sizeof(uint32_t)),
