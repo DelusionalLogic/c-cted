@@ -36,6 +36,42 @@ int main(int argc, char **argv) {
 	{
 		struct Tree a;
 		size_t *chunks = NULL;
+		if(parse_string("<root> </root>", &a, &chunks) != 0) return fail();
+		if(a.adj.stride != 1) return fail();
+		if(a.len != 1) return fail();
+		nid expected[] = {
+			0,
+		};
+		if(memcmp(a.adj.data, expected, sizeof(expected)) != 0) return fail();
+		
+		// Verify chunk offsets
+		if(chunks[0] != 0) return fail();
+		
+		free(chunks);
+		free(a.adj.data);
+	}
+
+	{
+		struct Tree a;
+		size_t *chunks = NULL;
+		if(parse_string("<root>\n</root>", &a, &chunks) != 0) return fail();
+		if(a.adj.stride != 1) return fail();
+		if(a.len != 1) return fail();
+		nid expected[] = {
+			0,
+		};
+		if(memcmp(a.adj.data, expected, sizeof(expected)) != 0) return fail();
+		
+		// Verify chunk offsets
+		if(chunks[0] != 0) return fail();
+		
+		free(chunks);
+		free(a.adj.data);
+	}
+
+	{
+		struct Tree a;
+		size_t *chunks = NULL;
 		if(parse_string("<root><a></a><b></b></root>", &a, &chunks) != 0) return fail();
 		if(a.adj.stride != 2) return fail();
 		if(a.len != 3) return fail();

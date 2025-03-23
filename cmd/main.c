@@ -3,39 +3,70 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/mman.h>
 
 #include "leven.h"
 #include "parse.h"
+#include "log.h"
 
 int main(int argc, char **argv) {
 	int rc;
-	/* int fd = open("filename", O_RDONLY); */
-	/* int len = lseek(fd, 0, SEEK_END); */
-	/* void *data = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0); */
+	char *a;
+	{
+		int fd = open("/Users/delusional/Documents/xmldiff/file_a.xml", O_RDONLY);
+		int len = lseek(fd, 0, SEEK_END);
+		a = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
+	}
 
-	char* a = "<root><a/><b></b></root>";
-	char* b = "<root><a><b/></a></root>";
+	char* b;
+	{
+		int fd = open("/Users/delusional/Documents/xmldiff/file_b.xml", O_RDONLY);
+		int len = lseek(fd, 0, SEEK_END);
+		b = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
+	}
 
+	/* char* a = "<root><a/><b></b></root>"; */
+	/* char* b = "<root><a><b/></a></root>"; */
+
+	log("Parse a");
 	struct Tree a_tree;
 	size_t *a_chunks;
 	rc = parse_string(a, &a_tree, &a_chunks);
 	if(rc != 0) return 1;
-	printf("%ld\n", a_tree.len);
+	log("Tree a size %ld", a_tree.len);
 
+	log("Parse b");
 	struct Tree b_tree;
 	size_t *b_chunks;
 	rc = parse_string(b, &b_tree, &b_chunks);
 	if(rc != 0) return 1;
-	printf("%ld\n", b_tree.len);
+	log("Tree b size %ld", b_tree.len);
 
-	DECL_MAT_DATA(cost, uint32_t, 4, 4,
-		0, 2, 2, 2,
-		2, 0, 1, 1,
-		2, 1, 0, 1,
-		2, 1, 1, 0,
+	DECL_MAT_DATA(cost, uint32_t, 5, 5,
+		0, 2, 2, 2, 2,
+		2, 1, 1, 1, 1,
+		2, 1, 1, 1, 1,
+		2, 1, 1, 0, 1,
+		2, 1, 1, 1, 1
 	);
+	for(size_t j = 0; j < 4; j++) {
+		size_t b_tag_end = b_chunks[j];
+		while(b[b_tag_end] != '>') b_tag_end++;
+		for(size_t i = 0; i < 4; i++) {
+			size_t a_tag_end = a_chunks[i];
+			while(a[a_tag_end] != '>') a_tag_end++;
+			log("%ld, %ld", i, j);
+			
+			size_t a_len = a_tag_end - a_chunks[i];
+			size_t b_len = b_tag_end - b_chunks[j];
+			log("B: %ld, A: %ld", b_len, a_len);
+			log("A: %.*s, B: %.*s", (int)a_len, a + a_chunks[i], (int)b_len, b + b_chunks[j]);
+
+			*imat_uint32_t(cost, i+1, j+1) = !(a_len == b_len && memcmp(a + a_chunks[i], b + b_chunks[j], a_len) == 0) * 1;
+		}
+	}
 	printf("\n");
 	for(size_t y = 0; y < b_tree.len; y++) {
 		for(size_t x = 0; x < b_tree.adj.stride; x++) {
@@ -52,6 +83,15 @@ int main(int argc, char **argv) {
 		printf("\n");
 	}
 	printf("\n");
+
+	logb("2D Array %s [%ldx%d]", "cost", cost.stride, 5);
+	for(uint32_t y = 0; y < 5; y++) {
+		lognl();
+		for(uint32_t x = 0; x < cost.stride; x++) {
+			logc("%03d ", *imat_uint32_t(cost, x, y));
+		}
+	}
+	loge();
 	/* mat_uint32_t cost = { */
 	/* 	.data = malloc(a_tree.len * b_tree.len * sizeof(uint32_t)), */
 	/* 	.stride = a_tree.len, */

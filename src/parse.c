@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "log.h"
 
@@ -31,6 +32,10 @@ static bool alnum(struct ParseCtx *ctx) {
 	return isalnum(ctx->cursor[0]);
 }
 
+static bool wspace(struct ParseCtx *ctx) {
+	return strchr(" \n\t", ctx->cursor[0]) != NULL;
+}
+
 static int read_STag(struct ParseCtx *ctx, bool *self_close, size_t nodeId) {
 	// Record start position of the tag
 	if (ctx->phase == PHASE_BUILD) {
@@ -40,7 +45,8 @@ static int read_STag(struct ParseCtx *ctx, bool *self_close, size_t nodeId) {
 	if(*ctx->cursor != '<') return 1;
 	ctx->cursor++;
 
-	while(isalnum(*ctx->cursor) || *ctx->cursor == ' ' || *ctx->cursor == '"' || *ctx->cursor == '=') ctx->cursor++;
+	// @COMP Does xml allow all whitespace in the tag?
+	while(alnum(ctx) || *ctx->cursor == ' ' || *ctx->cursor == '"' || *ctx->cursor == '=') ctx->cursor++;
 
 	// Check for self-closing tag
 	if(*ctx->cursor == '/') {
@@ -70,7 +76,7 @@ static int read_Content(struct ParseCtx *ctx, size_t nodeId) {
 				*imat_nid(ctx->tree->adj, children, nodeId) = childId+1;
 
 			children++;
-		} else if(alnum(ctx)) {
+		} else if(alnum(ctx) || wspace(ctx)) {
 			ctx->cursor++;
 		} else {
 			break;

@@ -176,8 +176,10 @@ void constrained_tree_alignment (
 	const mat_uint32_t cost,
 	const mat_uint32_t cost_n, // The resulting computed cost matrixes node and forest. Size a.len x b.len
 	const mat_uint32_t cost_f,
+	// Scratch space
 	mat_uint32_t cost_s,
 	uint32_t *adj_alignment,
+
 	mat_uint32_t alignment
 ) {
 
@@ -198,7 +200,7 @@ void constrained_tree_alignment (
 			size_t remain = 1;
 			size_t cursor = j-1;
 			while(remain > 0) {
-				log("ADD %ld", cursor);
+				log("ADD %ld", cursor+1);
 
 				size_t adj_len = 0;
 				while(adj_len < b.adj.stride && *imat_nid(b.adj, adj_len, cursor) != 0) adj_len++;
@@ -212,7 +214,7 @@ void constrained_tree_alignment (
 			size_t remain = 1;
 			size_t cursor = i-1;
 			while(remain > 0) {
-				log("REMOVE %ld", cursor);
+				log("REMOVE %ld", cursor+1);
 
 				size_t adj_len = 0;
 				while(adj_len < a.adj.stride && *imat_nid(a.adj, adj_len, cursor) != 0) adj_len++;
@@ -291,6 +293,14 @@ void constrained_tree_alignment (
 				slot[1] = *imat_nid(b.adj, b_cursor, j-1);
 
 				b_cursor--;
+				a_cursor--;
+			}
+
+			while(a_cursor >= 0) {
+				uint32_t *slot = imat_uint32_t(to_compute, 0, to_compute_head);
+				to_compute_head++;
+				slot[0] = *imat_nid(a.adj, a_cursor, i-1);
+				slot[1] = -1;
 				a_cursor--;
 			}
 		} else if(a_adj_len > 0 && *imat_uint32_t(cost_n, i, j) == *imat_uint32_t(cost_n, i, 0) + min_cost_a) {
