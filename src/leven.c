@@ -181,7 +181,7 @@ void constrained_tree_alignment (
 	CTedData data,
 	uint32_t *adj_alignment,
 
-	mat_uint32_t alignment
+	uint32_t *alignment
 ) {
 
 	mat_uint32_t cost = data.cost;
@@ -238,11 +238,11 @@ void constrained_tree_alignment (
 		size_t b_adj_len = 0;
 		while(b_adj_len < b.adj.stride && *imat_nid(b.adj, b_adj_len, j-1) != 0) b_adj_len++;
 
-		uint32_t min_cost_a = UINT32_MAX;
+		int32_t min_cost_a = INT32_MAX;
 		ssize_t min_a = -1;
 		if(a_adj_len > 0) {
 			for(uint32_t k = 0; k < a_adj_len; k++) {
-				uint32_t cost = *imat_uint32_t(cost_n, *imat_nid(a.adj, k, i-1), j) - *imat_uint32_t(cost_n, *imat_nid(a.adj, k, i-1), 0);
+				int32_t cost = *imat_uint32_t(cost_n, *imat_nid(a.adj, k, i-1), j) - *imat_uint32_t(cost_n, *imat_nid(a.adj, k, i-1), 0);
 				if(min_cost_a > cost) {
 					min_cost_a = cost;
 					min_a = k;
@@ -250,11 +250,11 @@ void constrained_tree_alignment (
 			}
 		}
 
-		uint32_t min_cost_b = UINT32_MAX;
+		int32_t min_cost_b = UINT32_MAX;
 		ssize_t min_b = -1;
 		if(b_adj_len > 0) {
 			for(uint32_t k = 0; k < b_adj_len; k++) {
-				uint32_t cost = *imat_uint32_t(cost_n, i, *imat_nid(b.adj, k, j-1)) - *imat_uint32_t(cost_n, 0, *imat_nid(b.adj, k, j-1));
+				int32_t cost = *imat_uint32_t(cost_n, i, *imat_nid(b.adj, k, j-1)) - *imat_uint32_t(cost_n, 0, *imat_nid(b.adj, k, j-1));
 				if(min_cost_b > cost) {
 					min_cost_b = cost;
 					min_b = k;
@@ -263,7 +263,7 @@ void constrained_tree_alignment (
 		}
 
 		if(*imat_uint32_t(cost_n, i, j) == *imat_uint32_t(cost_f, i, j) + *imat_uint32_t(cost, i, j)) {
-			log("MATCH %d %d", i, j);
+			*(alignment++) = i;
 			// Compare the forests underneath this node
 			string_edit_distance(imat_nid(a.adj, 0, i-1), a_adj_len, imat_nid(b.adj, 0, j-1), b_adj_len, cost_n, cost_s);
 			assert(*imat_uint32_t(cost_s, a_adj_len, b_adj_len) == *imat_uint32_t(cost_f, i, j));
@@ -311,7 +311,8 @@ void constrained_tree_alignment (
 			}
 		} else if(a_adj_len > 0 && *imat_uint32_t(cost_n, i, j) == *imat_uint32_t(cost_n, i, 0) + min_cost_a) {
 			// Remove this node and replace it with one of its children
-			log("REMOVE %ld %ld", i, j);
+			// This doesn't write to the alignment since we dont map operations
+			// on a
 			for(size_t x = 0; x < a_adj_len; x++) {
 				uint32_t *slot = imat_uint32_t(to_compute, 0, to_compute_head);
 				to_compute_head++;
@@ -325,7 +326,7 @@ void constrained_tree_alignment (
 			}
 		} else if(b_adj_len > 0 && *imat_uint32_t(cost_n, i, j) == *imat_uint32_t(cost_n, 0, j) + min_cost_b) {
 			// Inject a node here, moving the current node (from a) into the child forest.
-			log("ADD %ld %ld", i, j);
+			*(alignment++) = 0;
 			for(size_t x = 0; x < b_adj_len; x++) {
 				uint32_t *slot = imat_uint32_t(to_compute, 0, to_compute_head);
 				to_compute_head++;

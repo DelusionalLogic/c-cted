@@ -15,14 +15,14 @@ int main(int argc, char **argv) {
 	int rc;
 	char *a;
 	{
-		int fd = open("/Users/delusional/Documents/xmldiff/file_a.xml", O_RDONLY);
+		int fd = open("../xmldiff/file_a.xml", O_RDONLY);
 		int len = lseek(fd, 0, SEEK_END);
 		a = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
 	}
 
 	char* b;
 	{
-		int fd = open("/Users/delusional/Documents/xmldiff/file_b.xml", O_RDONLY);
+		int fd = open("../xmldiff/file_b.xml", O_RDONLY);
 		int len = lseek(fd, 0, SEEK_END);
 		b = mmap(0, len, PROT_READ, MAP_PRIVATE, fd, 0);
 	}
@@ -128,8 +128,8 @@ int main(int argc, char **argv) {
 
 	log("Final Cost %d", *imat_uint32_t(cost_n, 1, 1));
 
-	DECL_MAT(alignment, uint32_t, 2, 2);
-	uint32_t adj_alignment[2] = {0, 0};
+	uint32_t *alignment = malloc(b_tree.len * sizeof(*alignment));
+	uint32_t *adj_alignment = malloc(b_tree.adj.stride * sizeof(*adj_alignment));
 	constrained_tree_alignment(
 		a_tree,
 		b_tree,
@@ -137,6 +137,12 @@ int main(int argc, char **argv) {
 		adj_alignment,
 		alignment
 	);
+
+	logb("Alignment: ");
+	for(size_t i = 0; i < b_tree.len; i++) {
+		logc("%d ", alignment[i]);
+	}
+	loge();
 
 	return 0;
 }

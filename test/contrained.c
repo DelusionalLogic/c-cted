@@ -1,6 +1,8 @@
 #include "leven.h"
 
 #include "log.h"
+#include <stdlib.h>
+#include <string.h>
 
 DECL_MAT3(no_trace, uint32_t, 0, 0, 0);
 
@@ -47,8 +49,8 @@ int main(int argc, char **argv) {
 			return 1;
 		}
 
-		DECL_MAT(alignment, uint32_t, 2, 2);
-		uint32_t adj_alignment[2] = {0, 0};
+		uint32_t alignment[1];
+		uint32_t adj_alignment[2];
 		constrained_tree_alignment(
 			a,
 			b,
@@ -61,6 +63,12 @@ int main(int argc, char **argv) {
 			adj_alignment,
 			alignment
 		);
+
+		if(memcmp(alignment, (uint32_t[]) {
+			1
+		}, sizeof(alignment)) != 0) {
+			return 1;
+		}
 	}
 
 	{
@@ -104,8 +112,8 @@ int main(int argc, char **argv) {
 			return 1;
 		}
 
-		DECL_MAT(alignment, uint32_t, 3, 2);
-		uint32_t adj_alignment[2] = {0, 0};
+		uint32_t alignment[1];
+		uint32_t adj_alignment[2];
 		constrained_tree_alignment(
 			a,
 			b,
@@ -118,6 +126,12 @@ int main(int argc, char **argv) {
 			adj_alignment,
 			alignment
 		);
+
+		if(memcmp(alignment, (uint32_t[]) {
+			2
+		}, sizeof(alignment)) != 0) {
+			return 1;
+		}
 	}
 
 	{
@@ -162,8 +176,8 @@ int main(int argc, char **argv) {
 			return 1;
 		}
 
-		DECL_MAT(alignment, uint32_t, 2, 2);
-		uint32_t adj_alignment[2] = {0, 0};
+		uint32_t alignment[2];
+		uint32_t adj_alignment[2];
 		constrained_tree_alignment(
 			a,
 			b,
@@ -176,6 +190,12 @@ int main(int argc, char **argv) {
 			adj_alignment,
 			alignment
 		);
+
+		if(memcmp(alignment, (uint32_t[]) {
+			1, 2
+		}, sizeof(alignment)) != 0) {
+			return 1;
+		}
 	}
 
 	{
@@ -222,8 +242,8 @@ int main(int argc, char **argv) {
 			return 1;
 		}
 
-		DECL_MAT(alignment, uint32_t, 2, 2);
-		uint32_t adj_alignment[2] = {0, 0};
+		uint32_t alignment[4];
+		uint32_t adj_alignment[2];
 		constrained_tree_alignment(
 			a,
 			b,
@@ -236,6 +256,13 @@ int main(int argc, char **argv) {
 			adj_alignment,
 			alignment
 		);
+
+		if(memcmp(alignment, (uint32_t[]) {
+			0, 1, 2, 3
+		}, sizeof(alignment)) != 0) {
+			abort();
+			return 1;
+		}
 	}
 
 	{
@@ -281,8 +308,8 @@ int main(int argc, char **argv) {
 			return 1;
 		}
 
-		DECL_MAT(alignment, uint32_t, 2, 2);
-		uint32_t adj_alignment[2] = {0, 0};
+		uint32_t alignment[3];
+		uint32_t adj_alignment[2];
 		constrained_tree_alignment(
 			a,
 			b,
@@ -295,6 +322,13 @@ int main(int argc, char **argv) {
 			adj_alignment,
 			alignment
 		);
+
+		if(memcmp(alignment, (uint32_t[]) {
+			1, 0, 3
+		}, sizeof(alignment)) != 0) {
+			abort();
+			return 1;
+		}
 	}
 
 	{
@@ -322,7 +356,7 @@ int main(int argc, char **argv) {
 		);
 		DECL_MAT(cost_n, uint32_t, 3, 4);
 		DECL_MAT(cost_f, uint32_t, 3, 4);
-		DECL_MAT(cost_s, uint32_t, 3, 2);
+		DECL_MAT(cost_s, uint32_t, 2, 2);
 
 		constrained_tree_distance(
 			a,
@@ -340,8 +374,8 @@ int main(int argc, char **argv) {
 			return 1;
 		}
 
-		DECL_MAT(alignment, uint32_t, 2, 2);
-		uint32_t adj_alignment[2] = {0, 0};
+		uint32_t alignment[3];
+		uint32_t adj_alignment[2];
 		constrained_tree_alignment(
 			a,
 			b,
@@ -354,6 +388,78 @@ int main(int argc, char **argv) {
 			adj_alignment,
 			alignment
 		);
+
+		if(memcmp(alignment, (uint32_t[]) {
+			1, 0, 2
+		}, sizeof(alignment)) != 0) {
+			abort();
+			return 1;
+		}
+	}
+
+	{
+		struct Tree a = {
+			.adj = {
+				.data = (nid[]){2, 3, 0},
+				.stride = 1,
+			},
+			.len = 3,
+		};
+
+		struct Tree b = {
+			.adj = {
+				.data = (nid[]){2, 0},
+				.stride = 1,
+			},
+			.len = 2,
+		};
+
+		DECL_MAT_DATA(cost, uint32_t, 4, 3,
+			0, 2, 2, 2,
+			2, 0, 2, 2,
+			2, 2, 2, 0,
+		);
+		DECL_MAT(cost_n, uint32_t, 4, 3);
+		DECL_MAT(cost_f, uint32_t, 4, 3);
+		DECL_MAT(cost_s, uint32_t, 2, 2);
+
+		constrained_tree_distance(
+			a,
+			b,
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			}
+		);
+
+		if(*imat_uint32_t(cost_n, 1, 1) != 2) {
+			log("Test Fail\n");
+			return 1;
+		}
+
+		uint32_t alignment[2];
+		uint32_t adj_alignment[2];
+		constrained_tree_alignment(
+			a,
+			b,
+			(CTedData) {
+				cost,
+				cost_n,
+				cost_f,
+				cost_s,
+			},
+			adj_alignment,
+			alignment
+		);
+
+		if(memcmp(alignment, (uint32_t[]) {
+			1, 3
+		}, sizeof(alignment)) != 0) {
+			abort();
+			return 1;
+		}
 	}
 
 	return 0;

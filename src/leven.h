@@ -54,5 +54,5 @@ void constrained_tree_alignment(
 	const struct Tree b,
 	CTedData data,
 	uint32_t *adj_alignment,
-	mat_uint32_t alignment
+	uint32_t *alignment
 );
