@@ -144,5 +144,30 @@ int main(int argc, char **argv) {
 	}
 	loge();
 
+	size_t a_chunk = 0;
+	size_t b_chunk = 0;
+
+	for(size_t i = 0; i < b_tree.len; i++) {
+		size_t bc_len = b_chunks[b_chunk+1] - b_chunks[b_chunk];
+
+		/* log("Dumping a from %ld until %d", a_chunk, alignment[i]); */
+		while(a_chunk + 1 < alignment[i]) {
+			size_t ac_len = a_chunks[a_chunk+1] - a_chunks[a_chunk];
+			fwrite(a + a_chunks[a_chunk], ac_len, 1, stdout);
+			a_chunk++;
+		}
+
+		if(alignment[i] == 0) {
+			/* log("Alignment says %ld was created", b_chunk); */
+			fwrite(b + b_chunks[b_chunk], bc_len, 1, stdout);
+		} else {
+			/* log("Alignment says %ld matches with %ld", b_chunk, a_chunk); */
+			fwrite(b + b_chunks[b_chunk], bc_len, 1, stdout);
+			a_chunk++;
+		}
+
+		b_chunk++;
+	}
+
 	return 0;
 }
