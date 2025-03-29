@@ -19,7 +19,7 @@ struct ParseCtx {
 	char *cursor;
 	struct Tree *tree;
 	size_t tree_cursor;
-	size_t *chunks;
+	ssize_t *chunks;
 
 	enum ParsePhase phase;
 };
@@ -39,7 +39,7 @@ static bool wspace(struct ParseCtx *ctx) {
 static int read_STag(struct ParseCtx *ctx, bool *self_close, size_t nodeId) {
 	// Record start position of the tag
 	if (ctx->phase == PHASE_BUILD) {
-		ctx->chunks[nodeId] = ctx->cursor - ctx->str;
+		*(ctx->chunks++) = ctx->cursor - ctx->str;
 	}
 
 	if(*ctx->cursor != '<') return 1;
@@ -50,6 +50,11 @@ static int read_STag(struct ParseCtx *ctx, bool *self_close, size_t nodeId) {
 
 	// Check for self-closing tag
 	if(*ctx->cursor == '/') {
+		// This is the end position of a self closing tag
+		if (ctx->phase == PHASE_BUILD) {
+			*(ctx->chunks++) = ctx->cursor - ctx->str;
+		}
+
 		*self_close = true;
 		ctx->cursor++;
 	}
@@ -96,6 +101,11 @@ static int read_Content(struct ParseCtx *ctx, size_t nodeId) {
 }
 
 static int read_ETag(struct ParseCtx *ctx) {
+	// Record start position of the tag
+	if (ctx->phase == PHASE_BUILD) {
+		*(ctx->chunks++) = ctx->cursor - ctx->str;
+	}
+
 	if(*ctx->cursor != '<') return 1;
 	ctx->cursor++;
 
@@ -135,7 +145,7 @@ static int read_Element(struct ParseCtx *ctx, size_t nodeId) {
 // much data we are going to store. Then we allocate the space based on that
 // count pass before then doing a second pass in the BUILD phase which fill in
 // those data structures.
-int parse_string(char *str, struct Tree *tree, size_t **chunks) {
+int parse_string(char *str, struct Tree *tree, ssize_t **chunks) {
 	assert(chunks != NULL); // Chunks parameter is required
 	
 	tree->adj.stride = 1;
@@ -157,8 +167,8 @@ int parse_string(char *str, struct Tree *tree, size_t **chunks) {
 
 	tree->adj.data = malloc(tree->len * tree->adj.stride * sizeof(*tree->adj.data));
 	
-	// Allocate memory for chunks
-	*chunks = malloc(tree->len * sizeof(size_t));
+	// Allocate memory for chunks theres one for the open and the close
+	*chunks = malloc(tree->len * 2 * sizeof(ssize_t));
 	if (*chunks == NULL) {
 		free(tree->adj.data);
 		return 1;

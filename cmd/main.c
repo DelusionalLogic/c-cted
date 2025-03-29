@@ -5,11 +5,29 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <sys/mman.h>
 
 #include "leven.h"
 #include "parse.h"
 #include "log.h"
+
+#define ACTIONS(X) \
+        X(ACTION_MATCH) \
+        X(ACTION_DEL_A) \
+        X(ACTION_ADD_B) \
+        X(ACTION_ET) \
+
+#define ENUM_VALUE(NAME) NAME,
+#define STRING_ARRAY_VALUE(NAME) #NAME,
+
+enum Action {
+    ACTIONS(ENUM_VALUE)
+};
+
+static const char *ActionNames[] = {
+    ACTIONS(STRING_ARRAY_VALUE)
+};
 
 int main(int argc, char **argv) {
 	int rc;
@@ -32,14 +50,14 @@ int main(int argc, char **argv) {
 
 	log("Parse a");
 	struct Tree a_tree;
-	size_t *a_chunks;
+	ssize_t *a_chunks;
 	rc = parse_string(a, &a_tree, &a_chunks);
 	if(rc != 0) return 1;
 	log("Tree a size %ld", a_tree.len);
 
 	log("Parse b");
 	struct Tree b_tree;
-	size_t *b_chunks;
+	ssize_t *b_chunks;
 	rc = parse_string(b, &b_tree, &b_chunks);
 	if(rc != 0) return 1;
 	log("Tree b size %ld", b_tree.len);
@@ -51,10 +69,31 @@ int main(int argc, char **argv) {
 		2, 1, 1, 0, 1,
 		2, 1, 1, 1, 1
 	);
+
+	size_t *a_opens = malloc(a_tree.len * sizeof(size_t));
+	size_t *b_opens = malloc(b_tree.len * sizeof(size_t));
+
+	{
+		size_t *a_cursor = a_opens;
+		for(size_t i = 0; i < a_tree.len*2; i++) {
+			if(a_chunks[i] >= 0) {
+				*(a_cursor++) = a_chunks[i];
+			}
+		}
+	}
+	{
+		size_t *b_cursor = b_opens;
+		for(size_t i = 0; i < b_tree.len*2; i++) {
+			if(b_chunks[i] >= 0) {
+				*(b_cursor++) = b_chunks[i];
+			}
+		}
+	}
+
 	for(size_t i = 0; i < 4; i++) {
-		size_t a_tag_end = a_chunks[i];
+		size_t a_tag_end = a_opens[i];
 		while(a[a_tag_end] != '>') a_tag_end++;
-		size_t a_len = a_tag_end - a_chunks[i];
+		size_t a_len = a_tag_end - a_opens[i];
 		*imat_uint32_t(cost, i+1, 0) = a_len;
 	}
 	for(size_t j = 0; j < 4; j++) {
@@ -67,16 +106,16 @@ int main(int argc, char **argv) {
 		size_t b_tag_end = b_chunks[j];
 		while(b[b_tag_end] != '>') b_tag_end++;
 		for(size_t i = 0; i < 4; i++) {
-			size_t a_tag_end = a_chunks[i];
+			size_t a_tag_end = a_opens[i];
 			while(a[a_tag_end] != '>') a_tag_end++;
 			log("%ld, %ld", i, j);
 			
-			size_t a_len = a_tag_end - a_chunks[i];
+			size_t a_len = a_tag_end - a_opens[i];
 			size_t b_len = b_tag_end - b_chunks[j];
 			log("B: %ld, A: %ld", b_len, a_len);
-			log("A: %.*s, B: %.*s", (int)a_len, a + a_chunks[i], (int)b_len, b + b_chunks[j]);
+			log("A: %.*s, B: %.*s", (int)a_len, a + a_opens[i], (int)b_len, b + b_chunks[j]);
 
-			*imat_uint32_t(cost, i+1, j+1) = !(a_len == b_len && memcmp(a + a_chunks[i], b + b_chunks[j], a_len) == 0) * 1;
+			*imat_uint32_t(cost, i+1, j+1) = !(a_len == b_len && memcmp(a + a_opens[i], b + b_chunks[j], a_len) == 0) * 1;
 		}
 	}
 	printf("\n");
@@ -144,29 +183,112 @@ int main(int argc, char **argv) {
 	}
 	loge();
 
-	size_t a_chunk = 0;
-	size_t b_chunk = 0;
+	// @CORRECT Theres a bug here where we will erroneously match an inner
+	// close with the wrong outer close. I dont quite know how we are
+	// going to solve right now. I think we may have to lookup what decision
+	// we made for the open tag
+	// The worst case would be that we remove the whole A tree and the whole B tree
+	enum Action *emit_actions = malloc((a_tree.len + b_tree.len) * 2 * sizeof(*emit_actions));
+	size_t current_action = 0;
+	size_t a_cursor = 0;
+	size_t b_cursor = 0;
+	size_t alignment_cursor = 0;
 
-	for(size_t i = 0; i < b_tree.len; i++) {
-		size_t bc_len = b_chunks[b_chunk+1] - b_chunks[b_chunk];
+	size_t *a_close = malloc(a_tree.len * sizeof(size_t));
+	size_t a_close_top = 0;
+	size_t *b_close = malloc(b_tree.len * sizeof(size_t));
+	size_t b_close_top = 0;
 
-		/* log("Dumping a from %ld until %d", a_chunk, alignment[i]); */
-		while(a_chunk + 1 < alignment[i]) {
-			size_t ac_len = a_chunks[a_chunk+1] - a_chunks[a_chunk];
-			fwrite(a + a_chunks[a_chunk], ac_len, 1, stdout);
-			a_chunk++;
-		}
+	while(a_cursor < a_tree.len && b_cursor < b_tree.len) {
+		if(alignment[alignment_cursor] == 0) {
+			alignment_cursor++;
+			emit_actions[current_action++] = ACTION_ADD_B;
 
-		if(alignment[i] == 0) {
-			/* log("Alignment says %ld was created", b_chunk); */
-			fwrite(b + b_chunks[b_chunk], bc_len, 1, stdout);
+			b_close[b_close_top] = 0;
+			while(b_close[b_close_top] < b_tree.adj.stride && *imat_nid(b_tree.adj, b_close[b_close_top], b_cursor) != 0)
+				b_close[b_close_top]++;
+			b_close_top++;
+
+			b_cursor++;
+		} else if(a_cursor + 1 < alignment[alignment_cursor]) {
+			emit_actions[current_action++] = ACTION_DEL_A;
+
+			a_close[a_close_top] = 0;
+			while(a_close[a_close_top] < a_tree.adj.stride && *imat_nid(a_tree.adj, a_close[a_close_top], a_cursor) != 0)
+				a_close[a_close_top]++;
+			a_close_top++;
+
+			a_cursor++;
 		} else {
-			/* log("Alignment says %ld matches with %ld", b_chunk, a_chunk); */
-			fwrite(b + b_chunks[b_chunk], bc_len, 1, stdout);
-			a_chunk++;
+			alignment_cursor++;
+			emit_actions[current_action++] = ACTION_MATCH;
+
+			b_close[b_close_top] = 0;
+			while(b_close[b_close_top] < b_tree.adj.stride && *imat_nid(b_tree.adj, b_close[b_close_top], b_cursor) != 0)
+				b_close[b_close_top]++;
+			b_close_top++;
+
+			a_close[a_close_top] = 0;
+			while(a_close[a_close_top] < a_tree.adj.stride && *imat_nid(a_tree.adj, a_close[a_close_top], a_cursor) != 0)
+				a_close[a_close_top]++;
+			a_close_top++;
+
+			a_cursor++;
+			b_cursor++;
 		}
 
-		b_chunk++;
+		while(a_close[a_close_top-1] == 0 || b_close[b_close_top-1] == 0) {
+			if(a_close[a_close_top-1] == 0 && b_close[b_close_top-1] == 0) {
+				a_close_top--;
+				a_close[a_close_top-1]--;
+				b_close_top--;
+				b_close[b_close_top-1]--;
+
+				emit_actions[current_action++] = ACTION_MATCH;
+			} else if(a_close[a_close_top-1] == 0) {
+				a_close_top--;
+				a_close[a_close_top-1]--;
+
+				emit_actions[current_action++] = ACTION_DEL_A;
+			} else if(b_close[b_close_top-1] == 0) {
+				b_close_top--;
+				b_close[b_close_top-1]--;
+
+				emit_actions[current_action++] = ACTION_ADD_B;
+			}
+		}
+	}
+
+	logb("Actions: ");
+	for(size_t i = 0; i < current_action; i++) {
+		lognl();
+		logc("    %s", ActionNames[emit_actions[i]]);
+	}
+	loge();
+	
+	b_cursor = 0;
+	a_cursor = 0;
+
+	for(size_t i = 0; i < current_action; i++) {
+		size_t bc_len = (b_cursor+1 >= b_tree.len*2 ? strlen(b) : b_chunks[b_cursor+1]) - b_chunks[b_cursor];
+		size_t ac_len = (a_cursor+1 >= a_tree.len*2 ? strlen(a) : a_chunks[a_cursor+1]) - a_chunks[a_cursor];
+		if(emit_actions[i] == ACTION_MATCH) {
+			fwrite(b + b_chunks[b_cursor], bc_len, 1, stdout);
+			a_cursor++;
+			b_cursor++;
+		} else if(emit_actions[i] == ACTION_ADD_B) {
+			fprintf(stdout, "{+");
+			fwrite(b + b_chunks[b_cursor], bc_len, 1, stdout);
+			fprintf(stdout, "+}");
+			b_cursor++;
+		} else if(emit_actions[i] == ACTION_DEL_A) {
+			fprintf(stdout, "{-");
+			fwrite(a + a_chunks[a_cursor], ac_len, 1, stdout);
+			fprintf(stdout, "-}");
+			a_cursor++;
+		} else {
+			abort();
+		}
 	}
 
 	return 0;
